@@ -1,0 +1,21 @@
+cmake_minimum_required(VERSION 3.14)
+project(knowrob_bank)
+
+find_package(catkin)
+
+find_package(PkgConfig)
+pkg_check_modules(SWIPL REQUIRED swipl)
+
+set(CMAKE_CXX_FLAGS "-std=c++0x ${CMAKE_CXX_FLAGS}")
+
+include_directories(include ${SWIPL_INCLUDE_DIRS} ${catkin_INCLUDE_DIRS})
+add_library(bank SHARED src/main.cpp)
+target_link_libraries(bank ${SWIPL_LIBRARIES} ${catkin_LIBRARIES})
+add_dependencies(bank ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+  
+install(DIRECTORY launch/
+  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/launch)
+  
+install(DIRECTORY prolog/
+  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/prolog)
+
