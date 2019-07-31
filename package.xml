@@ -3,11 +3,11 @@
   <name>knowrob_bank</name>
   <version>0.1.0</version>
   <description>
-    Web-based visualization tools for displaying the contents of the knowledge
+    Mesh creator tools for displaying the contents of the knowledge
     base.
   </description>
 
-  <maintainer email="danielb@cs.uni-bremen.de">Daniel Beßler</maintainer>
+  <maintainer email="tanakit_21235@hotmail.com">Tanakitti Sachati</maintainer>
 
   <license>BSD</license>
 

@@ -5,6 +5,7 @@
 #ifndef UNTITLED4_TEST_H
 #define UNTITLED4_TEST_H
 #include <fstream>
+#include <iterator>
 #include <math.h>
 #include "Vec3.h"
 #include "Misc.h"
@@ -259,8 +260,8 @@ namespace test
         OutCell.iEdgeFlags = aiCubeEdgeFlags[OutCell.iFlagIndex];
 
         // I don't exactly know in which case this happens, but let's just assume that we need these lines
-        if (OutCell.iEdgeFlags == 0)
-            return;
+        //if (OutCell.iEdgeFlags == 0)
+       	//  return;
 
         // Compute actual edge vertices
         Vec3<float> EdgeVertices[12];
@@ -368,7 +369,7 @@ namespace test
 
         print("[writeFile] Saving Mesh");
         // open output file
-        std::ofstream out("../output/tooth.obj");
+        std::ofstream out("tooth.obj");
         out<< "# ";
         out<< test::numTriangle;
         out<< "\n";
@@ -504,11 +505,11 @@ namespace test
                              "</COLLADA>";
 
         print("[convertObjtoDea] Convert Object to Dea file format");
-        std::string filePath = "../output/tooth.obj";
+        std::string filePath = "tooth.obj";
 
         std::ifstream in(filePath);
         std::string line;
-        std::ofstream out("../output/tooth.dae");
+        std::ofstream out("tooth.dae");
         int count = 0;
 
 
