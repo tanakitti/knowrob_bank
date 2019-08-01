@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.14)
+cmake_minimum_required(VERSION 3.5)
 project(knowrob_bank)
 
 find_package(catkin REQUIRED COMPONENTS nodelet)
