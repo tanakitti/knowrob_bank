@@ -1,4 +1,4 @@
-:- module(marker_vis,
+:- module(bank,
     [
 	add/3,
 	createMesh/1
