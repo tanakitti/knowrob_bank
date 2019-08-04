@@ -40,55 +40,59 @@ namespace test
     std::unordered_map<int, std::vector<Vec3<float>>> m_gridToTriangles;
     Vec3<float>CubeSize;
 
-    void registerIdealEnvIST( const char *fileName, int version, pd::Matrix4<float> M, float density, const char * fileName2){
-
+    void registerIdealEnvIST( const char *fileName, int version, pd::Matrix4<float> M, float density, int frame){
+        
         print("[registerIdealEnvIST] Register All Leaves");
-
+        
         SphereTree<float> *env_ist = new SphereTree<float> ( fileName, version, M, density );
-
-        if(fileName2 != ""){
+        
+        int framCount = 1;
+        
+        while (framCount<=frame){
+            printf("[registerIdealEnvIST] updating frame: ");
+            print(framCount);
+            const char *fileName2 = ("./../../../knowrob_bank/src/input/"+toString(framCount)+".log").c_str();
             std::string filePath = fileName2;
             std::ifstream in(filePath);
             std::string line;
             std::ofstream out;
             int count = 0;
-
+            
             while (std::getline(in, line))
             {
                 if(count<3){
                     count++;
                     continue;
                 }
-
+                
                 std::istringstream iss(line);
                 std::vector<std::string> tokens{ std::istream_iterator<std::string>{iss},std::istream_iterator<std::string>{} };
-
                 unsigned int node_id = std::stoul(tokens[1]);
-//                Vec3<float> center(std::stof(tokens[2]), std::stof(tokens[3]), std::stof(tokens[4]));
-//                float radius = std::stof(tokens[5]);
                 env_ist->m_leaves[node_id].m_radius = 0;
-
+                
             }
+            
+            framCount++;
         }
-
-
-
+        
+        
+        
         g_idealEnvIsts.push_back( env_ist );
-
+        
         // Write to CPU globals, to accumulate
         g_idealEnvLeafCount += env_ist->m_countLeaves;
         delete[] g_idealEnvLeafX;
         delete[] g_idealEnvLeafY;
         delete[] g_idealEnvLeafZ;
         delete[] g_idealEnvLeafR;
-
+        
         g_idealEnvLeafX = new float[g_idealEnvLeafCount];
         g_idealEnvLeafY = new float[g_idealEnvLeafCount];
         g_idealEnvLeafZ = new float[g_idealEnvLeafCount];
         g_idealEnvLeafR = new float[g_idealEnvLeafCount];
-
-
-
+        
+        
+        
         // Copy elemental components as SoA
         int cnt = 0;
         for (int i=0; i<g_idealEnvIsts.size(); i++) {
@@ -100,6 +104,7 @@ namespace test
                 cnt++;
             }
         }
+        
         print("[registerIdealEnvIST] Finished Register All Leaves\"");
     }
 

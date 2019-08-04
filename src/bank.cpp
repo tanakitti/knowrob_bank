@@ -18,8 +18,10 @@ PREDICATE(createMesh, 1)
 
 	// register tooth
     	auto M = pd::Matrix4<float>::IDENTITY();
-   	test::registerIdealEnvIST("./../../../knowrob/knowrob_bank/src/input/framefull.log",1,M,1,"./../../../knowrob/knowrob_bank/src/input/framediff46.log");
+   	//test::registerIdealEnvIST("./../../../knowrob/knowrob_bank/src/input/framefull.log",1,M,1,"./../../../knowrob/knowrob_bank/src/input/framediff46.log");
 
+        test::registerIdealEnvIST("./../../../knowrob_bank/src/input/0.log",1,M,1,50);
+    
     	// Dimentional Setting
     	Vec3<float> m_min( -90, -90, -90);
     	Vec3<float> m_max( 90, 90, 90);
