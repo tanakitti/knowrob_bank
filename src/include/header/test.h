@@ -374,7 +374,7 @@ namespace test
 
         print("[writeFile] Saving Mesh");
         // open output file
-        std::ofstream out("tooth.obj");
+        std::ofstream out("./../../../../mesh_data/Bank_Mesh/tooth.obj");
         out<< "# ";
         out<< test::numTriangle;
         out<< "\n";
@@ -510,11 +510,11 @@ namespace test
                              "</COLLADA>";
 
         print("[convertObjtoDea] Convert Object to Dea file format");
-        std::string filePath = "tooth.obj";
+        std::string filePath = "./../../../../mesh_data/Bank_Mesh/tooth.obj";
 
         std::ifstream in(filePath);
         std::string line;
-        std::ofstream out("tooth.dae");
+        std::ofstream out("./../../../../mesh_data/Bank_Mesh/tooth.dae");
         int count = 0;
 
 
