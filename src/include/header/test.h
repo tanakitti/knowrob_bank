@@ -5,7 +5,6 @@
 #ifndef UNTITLED4_TEST_H
 #define UNTITLED4_TEST_H
 #include <fstream>
-#include <iterator>
 #include <math.h>
 #include "Vec3.h"
 #include "Misc.h"
@@ -41,58 +40,58 @@ namespace test
     Vec3<float>CubeSize;
 
     void registerIdealEnvIST( const char *fileName, int version, pd::Matrix4<float> M, float density, int frame){
-        
+
         print("[registerIdealEnvIST] Register All Leaves");
-        
+
         SphereTree<float> *env_ist = new SphereTree<float> ( fileName, version, M, density );
-        
+
         int framCount = 1;
-        
+
         while (framCount<=frame){
             printf("[registerIdealEnvIST] updating frame: ");
             print(framCount);
-            const char *fileName2 = ("./../../../knowrob_bank/src/input/"+toString(framCount)+".log").c_str();
+            const char *fileName2 = ("./../input/"+toString(framCount)+".log").c_str();
             std::string filePath = fileName2;
             std::ifstream in(filePath);
             std::string line;
             std::ofstream out;
             int count = 0;
-            
+
             while (std::getline(in, line))
             {
                 if(count<3){
                     count++;
                     continue;
                 }
-                
+
                 std::istringstream iss(line);
                 std::vector<std::string> tokens{ std::istream_iterator<std::string>{iss},std::istream_iterator<std::string>{} };
                 unsigned int node_id = std::stoul(tokens[1]);
                 env_ist->m_leaves[node_id].m_radius = 0;
-                
+
             }
-            
+
             framCount++;
         }
-        
-        
-        
+
+
+
         g_idealEnvIsts.push_back( env_ist );
-        
+
         // Write to CPU globals, to accumulate
         g_idealEnvLeafCount += env_ist->m_countLeaves;
         delete[] g_idealEnvLeafX;
         delete[] g_idealEnvLeafY;
         delete[] g_idealEnvLeafZ;
         delete[] g_idealEnvLeafR;
-        
+
         g_idealEnvLeafX = new float[g_idealEnvLeafCount];
         g_idealEnvLeafY = new float[g_idealEnvLeafCount];
         g_idealEnvLeafZ = new float[g_idealEnvLeafCount];
         g_idealEnvLeafR = new float[g_idealEnvLeafCount];
-        
-        
-        
+
+
+
         // Copy elemental components as SoA
         int cnt = 0;
         for (int i=0; i<g_idealEnvIsts.size(); i++) {
@@ -104,7 +103,7 @@ namespace test
                 cnt++;
             }
         }
-        
+
         print("[registerIdealEnvIST] Finished Register All Leaves\"");
     }
 
@@ -233,7 +232,7 @@ namespace test
 
     void CalculateFlagIndex(FCell& OutCell, const Vec3<float>& InCurrentCube, const Vec3<float>& InNumberOfCubes, const float* InScalarField, const int InLOD)
     {
-        Vec3<float> BoundsMin( -90, -90, -90);
+        Vec3<float> BoundsMin( -100, -100, -100);
 
         OutCell.iFlagIndex = 0;
         for (int i = 0; i < 8; ++i)
@@ -265,8 +264,8 @@ namespace test
         OutCell.iEdgeFlags = aiCubeEdgeFlags[OutCell.iFlagIndex];
 
         // I don't exactly know in which case this happens, but let's just assume that we need these lines
-        //if (OutCell.iEdgeFlags == 0)
-       	//  return;
+        if (OutCell.iEdgeFlags == 0)
+            return;
 
         // Compute actual edge vertices
         Vec3<float> EdgeVertices[12];
@@ -370,11 +369,69 @@ namespace test
 
     }
 
+    void kern_scalarFieldProcess(Vec3<float> bbStart, Vec3<float> bbEnd, Vec3<float> bbDiff, Vec3<float> cellDim, Vec3<float> min, Vec3<float> max, Vec3<float> gridRes, const float *__restrict__ scalarFieldRaw, float *__restrict__ scalarField, int N2, float sigmaS, float sigmaD)
+    {
+        int lo1d = min.x + min.y*gridRes.x + min.z*gridRes.x*gridRes.y;
+        int hi1d = (max.x) + (max.y-1)*gridRes.x + (max.z-1)*gridRes.x*gridRes.y;
+        printf("hi1d: ");
+        print(hi1d,lo1d);
+        for (unsigned int t = 0; t<hi1d; t++)
+        {
+            if(t%100000==0){
+                printf("Processing: ");
+                print(t);
+            }
+
+            int idx = t;
+            int z = t / (gridRes.x * gridRes.y);
+            idx -= z * gridRes.x * gridRes.y;
+            int y = idx / gridRes.x;
+            int x = (int)idx % (int)gridRes.x;
+            if (x < min.x || max.x < x ||
+                y < min.y || max.y < y ||
+                z < min.z || max.z < z )
+                continue;
+
+
+            Vec3<float> gridCell( x, y, z );
+            float p = scalarFieldRaw[t];
+            Vec3<float> worldCell = bbStart + gridCell*cellDim;
+            float sum = 0;
+            float sum_weight = 0;
+
+            for (int k=z-N2; k<=z+N2; k++) {
+                for (int j=y-N2; j<=y+N2; j++) {
+                    for (int i=x-N2; i<=x+N2; i++) {
+                        Vec3<float> gridNeighbour( i, j, k );
+                        int idx2 = i + j*gridRes.x + k*gridRes.x*gridRes.y;
+                        Vec3<float> worldNeighbour = bbStart + gridNeighbour*cellDim;
+
+
+                        float d = (worldNeighbour-worldCell).calcLength() / sigmaD;
+                        float p2 = scalarFieldRaw[idx2];
+                        float s = (p2 - p) / sigmaS;
+                        float w = expf(-0.5 * d*d) * expf(-0.5 * s*s);
+
+
+                        sum += w * p2;
+                        sum_weight += w;
+                    }
+                }
+            }
+
+            if (sum_weight != 0)
+                scalarField[t] = sum / sum_weight;
+            else
+                scalarField[t] = p;
+        }
+    }
+
+
     void writeFile(std::unordered_map<int, std::vector<Vec3<float>>> m_gridToTriangles){
 
         print("[writeFile] Saving Mesh");
         // open output file
-        std::ofstream out("./../../../../mesh_data/Bank_Mesh/tooth2.obj");
+        std::ofstream out("../output/tooth.obj");
         out<< "# ";
         out<< test::numTriangle;
         out<< "\n";
@@ -510,11 +567,11 @@ namespace test
                              "</COLLADA>";
 
         print("[convertObjtoDea] Convert Object to Dea file format");
-        std::string filePath = "./../../../../mesh_data/Bank_Mesh/tooth2.obj";
+        std::string filePath = "../output/tooth.obj";
 
         std::ifstream in(filePath);
         std::string line;
-        std::ofstream out("./../../../../mesh_data/Bank_Mesh/tooth2.dae");
+        std::ofstream out("../output/tooth.dae");
         int count = 0;
 
 
