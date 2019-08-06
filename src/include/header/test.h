@@ -54,6 +54,7 @@ namespace test
             const char *fileName2 = ("./../../../knowrob_bank/src/input/"+toString(framCount)+".log").c_str();
             std::string filePath = fileName2;
             std::ifstream in(filePath);
+            print(in.is_open());
             std::string line;
             std::ofstream out;
             int count = 0;
