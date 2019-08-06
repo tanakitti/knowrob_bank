@@ -51,7 +51,7 @@ namespace test
         while (framCount<=frame){
             printf("[registerIdealEnvIST] updating frame: ");
             print(framCount);
-            std::string filePath = "./../../../src/knowrob_bank/src/input/"+toString(framCount)+".log";
+            std::string filePath = "./../../../knowrob_bank/src/input/"+toString(framCount)+".log";
             std::ifstream in(filePath);
             printf("filePath : ");
             print(filePath);
