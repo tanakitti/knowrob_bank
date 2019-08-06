@@ -52,7 +52,7 @@ namespace test
             printf("[registerIdealEnvIST] updating frame: ");
             print(framCount);
             print(fileName2);
-            const char *fileName2 = ("./../../../knowrob_bank/src/input/"+toString(framCount)+".log").c_str();
+            const char *fileName2 = ("./../../../src/knowrob_bank/src/input/"+toString(framCount)+".log").c_str();
             std::string filePath = fileName2;
             std::ifstream in(filePath);
             print(in.is_open());
