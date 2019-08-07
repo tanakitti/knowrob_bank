@@ -56,6 +56,8 @@ namespace test
             printf("filePath : ");
             print(filePath);
             print(in.is_open());
+            
+            if(in.is_open()==0)continue;
             std::string line;
             std::ofstream out;
             int count = 0;
@@ -293,7 +295,7 @@ namespace test
     
     void CalculateFlagIndex(FCell& OutCell, const Vec3<float>& InCurrentCube, const Vec3<float>& InNumberOfCubes, const float* InScalarField, const int InLOD)
     {
-        Vec3<float> BoundsMin( -90, -90, -90);
+        Vec3<float> BoundsMin( -100, -100, -100);
         
         OutCell.iFlagIndex = 0;
         for (int i = 0; i < 8; ++i)
@@ -602,6 +604,7 @@ namespace test
                 out<< (tokens[2])+" ";
                 out<< (tokens[1])+" ";
             }else{
+                
                 
                 int numVertrex = std::stoi(tokens[1]);
                 int numXYZ = numVertrex*3;

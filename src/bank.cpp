@@ -23,8 +23,8 @@ PREDICATE(createMesh, 1)
         test::registerIdealEnvIST("./../../../knowrob_bank/src/input/0.log",1,M,1,(int)PL_A1*60);
     
     	// Dimentional Setting
-    	Vec3<float> m_min( -90, -90, -90);
-    	Vec3<float> m_max( 90, 90, 90);
+    	Vec3<float> m_min( -100, -100, -100);
+    	Vec3<float> m_max( 100, 100, 100);
 
     	Vec3<float> m_wd( m_max - m_min );
     	Vec3<float> m_d(  100,100,100 );
