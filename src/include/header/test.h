@@ -110,129 +110,63 @@ namespace test
         print("[registerIdealEnvIST] Finished Register All Leaves\"");
     }
     
-    void cpukern_scalarField( Vec3<float> bbStart, Vec3<float> bbEnd, Vec3<float> bbDiff, Vec3<float> cellDim, Vec3<float> min, Vec3<float> max, Vec3<float> gridRes, float *scalarField, bool full, unsigned long leafCount, float *leafX, float *leafY, float *leafZ, float *leafR ,bool logSpherePacking)
+    void kern_scalarFieldProcess(Vec3<float> bbStart, Vec3<float> bbEnd, Vec3<float> bbDiff, Vec3<float> cellDim, Vec3<float> min, Vec3<float> max, Vec3<float> gridRes, const float *__restrict__ scalarFieldRaw, float *__restrict__ scalarField, int N2, float sigmaS, float sigmaD)
     {
-        
-        print("[cpukern_scalarField] Create Scalar Field");
-        
-        if (!full)
+        int lo1d = min.x + min.y*gridRes.x + min.z*gridRes.x*gridRes.y;
+        int hi1d = (max.x) + (max.y-1)*gridRes.x + (max.z-1)*gridRes.x*gridRes.y;
+        printf("hi1d: ");
+        print(hi1d,lo1d);
+        for (unsigned int t = 0; t<hi1d; t++)
         {
-            for (int z=min.z; z<=max.z-1; z++)
-            {
-                for (int y=min.y; y<=max.y-1; y++)
-                {
-                    for (int x=min.x; x<=max.x-1; x++)
-                    {
+            if(t%100000==0){
+                printf("Processing: ");
+                print(t);
+            }
+            
+            int idx = t;
+            int z = t / (gridRes.x * gridRes.y);
+            idx -= z * gridRes.x * gridRes.y;
+            int y = idx / gridRes.x;
+            int x = (int)idx % (int)gridRes.x;
+            if (x < min.x || max.x < x ||
+                y < min.y || max.y < y ||
+                z < min.z || max.z < z )
+                continue;
+            
+            
+            Vec3<float> gridCell( x, y, z );
+            float p = scalarFieldRaw[t];
+            Vec3<float> worldCell = bbStart + gridCell*cellDim;
+            float sum = 0;
+            float sum_weight = 0;
+            
+            for (int k=z-N2; k<=z+N2; k++) {
+                for (int j=y-N2; j<=y+N2; j++) {
+                    for (int i=x-N2; i<=x+N2; i++) {
+                        Vec3<float> gridNeighbour( i, j, k );
+                        int idx2 = i + j*gridRes.x + k*gridRes.x*gridRes.y;
+                        Vec3<float> worldNeighbour = bbStart + gridNeighbour*cellDim;
                         
-                        int idx = x + y*gridRes.x + z*gridRes.x*gridRes.y;
-                        scalarField[idx] = -0.1f;
-                        //                        print(idx);
+                        
+                        float d = (worldNeighbour-worldCell).calcLength() / sigmaD;
+                        float p2 = scalarFieldRaw[idx2];
+                        float s = (p2 - p) / sigmaS;
+                        float w = expf(-0.5 * d*d) * expf(-0.5 * s*s);
+                        
+                        
+                        sum += w * p2;
+                        sum_weight += w;
                     }
                 }
             }
-        } else {
-            std::fill_n(scalarField, gridRes.x*gridRes.y*gridRes.z, -0.1f);
-        }
-        
-        
-        std::ofstream packing_user_txt;
-        if (logSpherePacking) {
-            packing_user_txt.open(std::string( "packing_user__" + GetRuntimeDate() + ".log" ), std::ofstream::trunc);
-            WriteVersionInfo( packing_user_txt );
-        }
-        
-        // Initalize back transformation for spheres (once)
-        static Matrix4<float> M;
-        static float scale;
-        if (logSpherePacking) {
-            static bool once = [](){
-                M = Matrix4<float >::IDENTITY();
-                if (false)
-                    M(0,0) = -M(0,0);
-                else
-                    M(1,1) = -M(1,1);
-                M.invert();
-                scale = (M.extractScale().x+M.extractScale().y+M.extractScale().z) / 3.f;
-                return true;
-            } ();
-        }
-        
-        print("[cpukern_scalarField] Precessing Scalar Field");
-        
-        // Thread input stride
-        for (int s=0; s<leafCount; s++)
-        {
-            // Thread-specific sphere
-            Vec3<float> ec( leafX[s], leafY[s], leafZ[s] );
-            float er = leafR[s];
             
-            // Find all grid cells of sphere intersection
-            auto bbStartSphere = ec - Vec3<float >(1,1,1)*(er*2.f);
-            auto bbEndSphere = ec + Vec3<float >(1,1,1)*(er*2.f);
-            auto offsetStart = bbStartSphere - bbStart;
-            auto offsetEnd = bbEndSphere - bbStart;
-            Vec3<float> gridCellStart( offsetStart.x/cellDim.x,
-                                      offsetStart.y/cellDim.y,
-                                      offsetStart.z/cellDim.z );
-            Vec3<float> gridCellEnd( offsetEnd.x/cellDim.x,
-                                    offsetEnd.y/cellDim.y,
-                                    offsetEnd.z/cellDim.z );
-            
-            if (!full) {
-                gridCellStart.x = fmaxf( gridCellStart.x, static_cast<float >(min.x) );
-                gridCellStart.y = fmaxf( gridCellStart.y, static_cast<float >(min.y) );
-                gridCellStart.z = fmaxf( gridCellStart.z, static_cast<float >(min.z) );
-                gridCellEnd.x = fminf( gridCellEnd.x, static_cast<float >(max.x) );
-                gridCellEnd.y = fminf( gridCellEnd.y, static_cast<float >(max.y) );
-                gridCellEnd.z = fminf( gridCellEnd.z, static_cast<float >(max.z) );
-            }
-            
-            // Cap cells
-            if (gridCellStart.x < 0) gridCellStart.x = 0;
-            if (gridCellStart.y < 0) gridCellStart.y = 0;
-            if (gridCellStart.z < 0) gridCellStart.z = 0;
-            if (gridCellStart.x >= gridRes.x) gridCellStart.x = static_cast<float>(gridRes.x-1);
-            if (gridCellStart.y >= gridRes.y) gridCellStart.y = static_cast<float >(gridRes.y-1);
-            if (gridCellStart.z >= gridRes.z) gridCellStart.z = static_cast<float >(gridRes.z-1);
-            if (gridCellEnd.x < 0) gridCellEnd.x = 0;
-            if (gridCellEnd.y < 0) gridCellEnd.y = 0;
-            if (gridCellEnd.z < 0) gridCellEnd.z = 0;
-            if (gridCellEnd.x >= gridRes.x) gridCellEnd.x = static_cast<float >(gridRes.x-1);
-            if (gridCellEnd.y >= gridRes.y) gridCellEnd.y = static_cast<float >(gridRes.y-1);
-            if (gridCellEnd.z >= gridRes.z) gridCellEnd.z = static_cast<float >(gridRes.z-1);
-            
-            // Iterate over all grid cells in BB and write contribution
-            for (int z=static_cast<int>(gridCellStart.z); z<=gridCellEnd.z; z++)
-            {
-                for (int y=static_cast<int>(gridCellStart.y); y<=gridCellEnd.y; y++)
-                {
-                    for (int x=static_cast<int>(gridCellStart.x); x<=gridCellEnd.x; x++)
-                    {
-                        
-                        if (er <= 0)
-                            continue;
-                        
-                        Vec3<float> gridDiff( static_cast<float>(x), static_cast<float>(y), static_cast<float>(z) );
-                        Vec3<float> worldVoxelSample = bbStart + gridDiff*cellDim;
-                        
-                        float d = (worldVoxelSample-ec).calcLength()-er;
-                        float p = d - (cellDim.calcLength()/1.73205080757f); //sqrt(3) =~ 1.73205080757
-                        
-                        
-                        int idx = x + y*gridRes.x + z*gridRes.x*gridRes.y;
-                        scalarField[idx] = fmaxf( -p, scalarField[idx]);
-                        
-                        
-                    }
-                }
-            }
+            if (sum_weight != 0)
+                scalarField[t] = sum / sum_weight;
+            else
+                scalarField[t] = p;
         }
-        if (logSpherePacking)
-            packing_user_txt.close();
-        
-        print("[cpukern_scalarField] Finished Precessing Scalar Field");
     }
-    
+
     void cpukern_scalarField( Vec3<float> bbStart, Vec3<float> bbEnd, Vec3<float> bbDiff, Vec3<float> cellDim, Vec3<float> min, Vec3<float> max, Vec3<float> gridRes, float *scalarField, bool full, unsigned long leafCount, float *leafX, float *leafY, float *leafZ, float *leafR ,bool logSpherePacking)
     {
         

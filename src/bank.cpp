@@ -31,6 +31,7 @@ PREDICATE(createMesh, 1)
     	Vec3<float> m_df( m_d.x, m_d.y, m_d.z );
     	Vec3<float> m_cellDim( m_wd/m_df );
     	float *m_scalarFieldRaw = new float[(int)(m_d.x*m_d.y*m_d.z)];
+        float *m_scalarFieldProcessed = new float[(int)(m_d.x*m_d.y*m_d.z)];
     	Vec3<float> max(m_df);
     	Vec3<float> min( 0, 0, 0);
 	
