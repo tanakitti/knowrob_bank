@@ -20,7 +20,7 @@ PREDICATE(createMesh, 1)
     	auto M = pd::Matrix4<float>::IDENTITY();
    	//test::registerIdealEnvIST("./../../../knowrob/knowrob_bank/src/input/framefull.log",1,M,1,"./../../../knowrob/knowrob_bank/src/input/framediff46.log");
 
-        test::registerIdealEnvIST("./../../../knowrob_bank/src/input/0.log",1,M,1,(int)PL_A1);
+        test::registerIdealEnvIST("./../../../knowrob_bank/src/input/0.log",1,M,1,(int)PL_A1*60);
     
     	// Dimentional Setting
     	Vec3<float> m_min( -90, -90, -90);
@@ -41,16 +41,23 @@ PREDICATE(createMesh, 1)
                               m_scalarFieldRaw, true, test::g_idealEnvLeafCount, test::g_idealEnvLeafX,
                               test::g_idealEnvLeafY, test::g_idealEnvLeafZ, test::g_idealEnvLeafR,true);
     	
-	int n = sizeof(m_scalarFieldRaw) / sizeof(m_scalarFieldRaw);
+        int n = sizeof(m_scalarFieldRaw) / sizeof(m_scalarFieldRaw);
     	std::reverse(m_scalarFieldRaw,m_scalarFieldRaw+n);
 
-    	test::MarchCubes(m_scalarFieldRaw,m_df,m_wd,m_wd);
+    
+        int N2 = 7/2;
+        Vec3<float> lo( N2, N2, N2 );
+        Vec3<float> hi( m_df.x-N2, m_df.y-N2, m_df.z-N2 );
+        int m_padding = (7/2) + (7/2)*m_df.x + (7/2)*m_df.x*m_df.y;
+    
+        test::kern_scalarFieldProcess( m_min, m_max, m_wd, m_cellDim, min, max, m_df, m_scalarFieldRaw+m_padding, m_scalarFieldProcessed, N2, 3.5, 3.5);
+        test::MarchCubes(m_scalarFieldProcessed,m_df,m_wd,m_wd);
+    
+        test::writeFile(test::m_gridToTriangles);
+    
+        test::convertObjtoDea();
 
-    	test::writeFile(test::m_gridToTriangles);
-
-    	test::convertObjtoDea();
-
-  	return TRUE;
+        return TRUE;
 };
 
 
