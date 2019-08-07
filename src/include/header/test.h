@@ -56,8 +56,6 @@ namespace test
             printf("filePath : ");
             print(filePath);
             print(in.is_open());
-            
-            if(in.is_open()==0)continue;
             std::string line;
             std::ofstream out;
             int count = 0;
