@@ -67,18 +67,10 @@ namespace test
                     continue;
                 }
                 
-                try
-                {
-                    std::istringstream iss(line);
-                    std::vector<std::string> tokens{ std::istream_iterator<std::string>{iss},std::istream_iterator<std::string>{} };
-                    int node_id = std::stoul(tokens[1]);
-                    env_ist->m_leaves[node_id].m_radius = 0;
-                    
-                }
-                catch (int e)
-                {
-                    std::cout << "An exception occurred. Exception Nr. " << e << '\n';
-                }
+                std::istringstream iss(line);
+                std::vector<std::string> tokens{ std::istream_iterator<std::string>{iss},std::istream_iterator<std::string>{} };
+                int node_id = std::stoi(tokens[1]);
+                env_ist->m_leaves[node_id].m_radius = 0;
                 
             }
             
